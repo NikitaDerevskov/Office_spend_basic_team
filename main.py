@@ -95,13 +95,13 @@ def send_manager_buttons(id, peer):
                 interactive_media.InteractiveMedia(
                     1,
                     interactive_media.InteractiveMediaButton(
-                        "add_guide", "Добавить гайд"
+                        "add_money", "Добавить деньги"
                     ),
                 ),
                 interactive_media.InteractiveMedia(
                     1,
                     interactive_media.InteractiveMediaButton(
-                        "get_user_token", "Получить ключ для приглашения Пользователя"
+                        "add_costs", "Добавить расходы"
                     ),
                 ),
                 interactive_media.InteractiveMedia(
@@ -114,15 +114,10 @@ def send_manager_buttons(id, peer):
                 interactive_media.InteractiveMedia(
                     1,
                     interactive_media.InteractiveMediaButton(
-                        "delete_guide", "Удалить гайд"
+                        "current", "Узнать баланс"
                     ),
                 ),
-                interactive_media.InteractiveMedia(
-                    1,
-                    interactive_media.InteractiveMediaButton(
-                        "get_guides", "Получить все гайды"
-                    ),
-                ),
+
             ]
         )
     ]
@@ -277,44 +272,15 @@ def on_click(*params):
 
         bot.messaging.send_message(peer, guide["content"])
 
-    if value == "add_guide":
-        bot.messaging.send_message(peer, "Напишите название гайда")
-
-        def get_content_and_go_main(*params):
-            title = params[0].message.textMessage.text
-
-            bot.messaging.send_message(peer, "Напишите содержание гайда")
-
-            def fn_and_go_main(*params):
-                content = params[0].message.textMessage.text
-                company = get_company(id)
-
-                add_guide(company, content, title)
-                bot.messaging.send_message(peer, "Вы создали гайд")
-
-                auth(id, peer, *params)
-
-                bot.messaging.on_message(main, on_click)
-
-            bot.messaging.on_message(fn_and_go_main)
-
-        bot.messaging.on_message(get_content_and_go_main)
+    if value == "add_money":
+        pass
 
     if value == "delete_guide":
         delete_guide(id, peer)
 
     if value == "get_user_token":
-        current_time = str(int(time.time() * 1000.0))
-        token = get_company(id) + current_time
-        tokens.insert_one(
-            {
-                "token": token,
-                "type": "user",
-                "company": get_company(id),
-                "time": current_time,
-            }
-        )
-        bot.messaging.send_message(peer, "Ключ для пользователя: " + token)
+        #TODO heer 
+        bot.messaging.send_message(peer, "Введите название расхода: " )
 
     if value == "get_admin_token":
         current_time = str(int(time.time() * 1000.0))
