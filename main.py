@@ -12,9 +12,10 @@ client = MongoClient(
 db = client.new_hackaton
 users = db.users
 guides = db.guides
-bot_token = "4a3a998e50c55e13fb4ef9a52a224303602da6af"
+bot_token = "fc1595f3591f137461a1ad6441062e083fd366a1"
 tokens = db.tokens
 cost = db.cost
+company = db.company
 # https://github.com/dialogs/chatbot-hackathon - basic things
 # https://hackathon.transmit.im/web/#/im/u2108492517 - bot
 
@@ -167,8 +168,8 @@ def delete_token(token):
     tokens.delete_one({"_id": token["_id"]})
 
 def get_current(id,peer):
-    company = get_company(id)
-    res = cost.find_one({"company": company})["leftover"]
+    company_res = get_company(id)
+    res = company.find_one({"company": company_res})["leftover"]
     bot.messaging.send_message(peer,res)
 
 def on_click(*params):
@@ -182,6 +183,39 @@ def on_click(*params):
             "Чтобы пользоваться ботом нужно иметь ключ или создать компанию или быть зарегистрированным",
         )
         return
+    if value == "current":
+        get_current(id,peer)
+    if value == "add_costs":
+        bot.messaging.send_message(peer, "Введите название расхода")
+
+        def get_cost_name(*params):
+            bot.messaging.send_message(peer, "Введите величину расхода (положительную)")
+            cost_name = params[0].message.textMessage.text
+            def cost_value(*params):
+                cost_value = int(params[0].message.textMessage.text)
+                company_name = get_company(id)
+                cost.insert_one({"company": company_name, "title":str(cost_name), "changing": str(cost_value)})
+                company_res = get_company(id)
+                current_leftover = company.find_one({"company": company_res})["leftover"]
+                company.remove({"company" : company_res})
+                company.insert_one({"company": company_res,  "leftover": str(int(current_leftover)-int(params[0].message.textMessage.text))})
+                bot.messaging.send_message(peer, str(cost_name) + str(cost_value))
+                auth(id, peer, *params)
+                bot.messaging.on_message(main, on_click)
+
+            bot.messaging.on_message(cost_value)
+
+        bot.messaging.on_message(get_cost_name)
+    if value == "add_money":
+        def adding_money(*params):
+             company.remove({"company" : company_res})
+             company.insert_one({"company": company_res,  "leftover": params[0].message.textMessage.text})
+             auth(id, peer, *params)
+             bot.messaging.on_message(main, on_click)
+        company_res = get_company(id)
+        res = company.find_one({"company": company_res})["leftover"]
+        bot.messaging.send_message(peer,"Ваш текущий баланс равен " + res +" Сколько должно быть денег?")
+        bot.messaging.on_message(adding_money)
     if value == "create_company":
         bot.messaging.send_message(peer, "Введите имя компании")
 
@@ -191,7 +225,7 @@ def on_click(*params):
             exits_companies_list = [x["company"] for x in exits_companies_dict]
 
             def getting_current_leftover(*params):
-                cost.insert_one({"company": company_name,"leftover": params[0].message.textMessage.text})
+                company.insert_one({"company": company_name,"leftover": params[0].message.textMessage.text})
                 auth(id, peer, *params)
                 bot.messaging.on_message(main, on_click)
 
@@ -209,27 +243,6 @@ def on_click(*params):
                 bot.messaging.on_message(getting_current_leftover)
 
         bot.messaging.on_message(waiting_of_creating_company)
-
-
-   if value == "add_costs":
-        bot.messaging.send_message(peer, "Введите название расхода")
-
-        def get_cost_name(*params):
-            bot.messaging.send_message(peer, "Введите величину расхода (положительную)")
-            cost_name = params[0].message.textMessage.text
-
-            def cost_value(*params):
-                cost_value = int(params[0].message.textMessage.text)
-                bot.messaging.send_message(peer, str(cost_name) + str(cost_value))
-                auth(id, peer, *params)
-                bot.messaging.on_message(main, on_click)
-
-            bot.messaging.on_message(cost_value)
-
-        bot.messaging.on_message(get_cost_name)
-
-
-
 
     if value == "get_admin_token":
         current_time = str(int(time.time() * 1000.0))
