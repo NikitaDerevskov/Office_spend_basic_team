@@ -60,7 +60,6 @@ def whose_token(token, id, peer):
         send_manager_buttons(id, peer)
     else:
         add_user_to_users(id, token["company"])
-        get_guides(id, peer)
 
 
 def want_to_create(*params):
@@ -126,7 +125,7 @@ def send_manager_buttons(id, peer):
 
 def auth(id, peer, *params):
     if is_exist(id):
-        send_manager_buttons(id, peer) if is_manager(id) else get_guides(id, peer)
+        send_manager_buttons(id, peer)
     else:
         has_token(id, *params)
 
@@ -159,72 +158,18 @@ def main(*params):
 
     auth(id, peer, *params)
 
-
-def render_guides_buttons(peer, guides):
-    def make_button(guide):
-        return interactive_media.InteractiveMedia(
-            1, interactive_media.InteractiveMediaButton(guide["value"], guide["title"])
-        )
-
-    buttons = [
-        interactive_media.InteractiveMediaGroup([make_button(x) for x in guides])
-    ]
-
-    bot.messaging.send_message(peer, "Выберите гайд", buttons)
-
-
-def guide_list(id):
-    user = users.find_one({"id": id})
-    guide_list_res = list(guides.find({"company": user["company"]}))
-    return guide_list_res
-
-
-def get_guides(id, peer):
-    guide_list_data = guide_list(id)
-    render_guides_buttons(peer, guide_list_data)
-
-
-def generate_guide_value(company):
-    number = len(list(guides.find({"company": company})))
-    if number == 0:
-        res = company + "1"
-    else:
-        res = company + str(number + 2)
-
-    return res
-
-
 def get_company(id):
     res = users.find_one({"id": id})["company"]
     return res
 
 
-def add_guide(company, content, title):
-    value = generate_guide_value(company)
-    guides.insert_one(
-        {"company": company, "value": value, "content": content, "title": title}
-    )
-
-
-def delete_guide(id, peer):
-    bot.messaging.send_message(peer, "Напишите название гайда который хотите удалить")
-
-    def delete(*params):
-        guide_name = params[0].message.textMessage.text
-        delete_res = guides.find_one_and_delete({"title": guide_name})
-        if delete_res is None:
-            bot.messaging.send_message(peer, "Гайда с таким названием не существует")
-        else:
-            bot.messaging.send_message(peer, "Гайд " + guide_name + " удалён")
-        auth(id, peer, *params)
-        bot.messaging.on_message(main, on_click)
-
-    bot.messaging.on_message(delete)
-
-
 def delete_token(token):
     tokens.delete_one({"_id": token["_id"]})
 
+def get_current(id,peer):
+    company = get_company(id)
+    res = cost.find_one({"company": company})["leftover"]
+    bot.messaging.send_message(peer,res)
 
 def on_click(*params):
     id = params[0].uid
@@ -246,8 +191,7 @@ def on_click(*params):
             exits_companies_list = [x["company"] for x in exits_companies_dict]
 
             def getting_current_leftover(*params):
-                bot.messaging.send_message(peer, "Мне заебись я попал сюда")
-                cost.insert_one({"leftover": params[0].message.textMessage.text})
+                cost.insert_one({"company": company_name,"leftover": params[0].message.textMessage.text})
                 auth(id, peer, *params)
                 bot.messaging.on_message(main, on_click)
 
@@ -266,42 +210,7 @@ def on_click(*params):
 
         bot.messaging.on_message(waiting_of_creating_company)
 
-    if value == "add_costs":
-        bot.messaging.send_message(peer, "Введите название расхода")
 
-        def get_cost_name(*params):
-            bot.messaging.send_message(peer, "Введите величину расхода (положительную)")
-            cost_name = params[0].message.textMessage.text
-
-            def cost_value(*params):
-                cost_value = int(params[0].message.textMessage.text)
-                bot.messaging.send_message(peer, str(cost_name) + str(cost_value))
-                auth(id, peer, *params)
-                bot.messaging.on_message(main, on_click)
-
-            bot.messaging.on_message(cost_value)
-
-        bot.messaging.on_message(get_cost_name)
-    all_guides = guide_list(id)
-    guides_values = [x["value"] for x in all_guides]
-
-    if value in guides_values:
-        guide = guides.find_one({"value": value})
-        bot.messaging.send_message(peer, guide["title"])
-
-        time.sleep(1)
-
-        bot.messaging.send_message(peer, guide["content"])
-
-    if value == "add_money":
-        pass
-
-    if value == "delete_guide":
-        delete_guide(id, peer)
-
-    if value == "get_user_token":
-        # TODO heer
-        bot.messaging.send_message(peer, "Введите название расхода: ")
 
     if value == "get_admin_token":
         current_time = str(int(time.time() * 1000.0))
@@ -316,8 +225,7 @@ def on_click(*params):
         )
         bot.messaging.send_message(peer, "Ключ для офис менеджера: " + token)
 
-    if value == "get_guides":
-        get_guides(id, peer)
+
 
 
 if __name__ == "__main__":
