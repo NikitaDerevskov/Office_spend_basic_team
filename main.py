@@ -246,7 +246,7 @@ def on_click(*params):
                 bot.messaging.on_message(main, on_click)
 
             company.remove({"company" : company_res})
-            company.insert_one({"company": company_res,  "leftover": cost_value})
+            company.insert_one({"company": company_res,  "leftover": str(cost_value)})
             auth(id, peer, *params)
             bot.messaging.on_message(main, on_click)
         company_res = get_company(id)
