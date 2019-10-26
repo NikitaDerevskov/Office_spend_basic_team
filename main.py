@@ -27,7 +27,6 @@ def add_user_to_admins(id, company):
 def add_user_to_users(id, company):
     users.insert_one({"type": "User", "id": id, "company": company})
 
-
 def is_exist(id):
     return False if users.find_one({"id": id}) is None else True
 
@@ -95,7 +94,7 @@ def send_manager_buttons(id, peer):
                 interactive_media.InteractiveMedia(
                     1,
                     interactive_media.InteractiveMediaButton(
-                        "add_money", "Добавить деньги"
+                        "current", "Узнать баланс"
                     ),
                 ),
                 interactive_media.InteractiveMedia(
@@ -107,14 +106,21 @@ def send_manager_buttons(id, peer):
                 interactive_media.InteractiveMedia(
                     1,
                     interactive_media.InteractiveMediaButton(
-                        "get_admin_token",
-                        "Получить ключ для приглашения Офис менеджера",
+                        "listOfCosts", "Список расходов"
                     ),
                 ),
                 interactive_media.InteractiveMedia(
                     1,
                     interactive_media.InteractiveMediaButton(
-                        "current", "Узнать баланс"
+                        "add_money", "Добавить деньги"
+                    ),
+                ),
+
+                interactive_media.InteractiveMedia(
+                    1,
+                    interactive_media.InteractiveMediaButton(
+                        "get_admin_token",
+                        "Получить ключ для приглашения Офис менеджера",
                     ),
                 ),
             ]
@@ -134,7 +140,7 @@ def auth(id, peer, *params):
 def start_text(peer):
     bot.messaging.send_message(
         peer,
-        "Здравствуйте это бот для онбординга. Чтобы узнать дополнительную информацию напишите /info (вставтьте ключ или напишите сообщение)",
+        "Здравствуйте это бот для подсчета расходов. Чтобы узнать дополнительную информацию напишите /info (вставтьте ключ или напишите сообщение)",
     )
 
 
@@ -183,23 +189,43 @@ def on_click(*params):
             "Чтобы пользоваться ботом нужно иметь ключ или создать компанию или быть зарегистрированным",
         )
         return
+    if value == "listOfCosts":
+        user = get_company(id)
+        title_list_res = list(cost.find({"company": user}))
+        exits_companies_list = [x["title"] for x in title_list_res]
+        exits_companies_list2 = [x["changing"] for x in title_list_res]
+        for i in range (len(exits_companies_list)):
+            bot.messaging.send_message(peer,str(i+1)+") Название: " + exits_companies_list[i]+ "; Сумма: "+ exits_companies_list2[i] )
+        auth(id, peer, *params)
+        bot.messaging.on_message(main, on_click)
     if value == "current":
         get_current(id,peer)
     if value == "add_costs":
         bot.messaging.send_message(peer, "Введите название расхода")
 
         def get_cost_name(*params):
-            bot.messaging.send_message(peer, "Введите величину расхода (положительную)")
+            bot.messaging.send_message(peer, "Введите величину расхода ")
             cost_name = params[0].message.textMessage.text
             def cost_value(*params):
-                cost_value = int(params[0].message.textMessage.text)
+                try:
+                    cost_value = int(params[0].message.textMessage.text)
+                except ValueError:
+                    bot.messaging.send_message(peer, "Введена некорректная величина. Попробуйте еще раз")
+                    auth(id, peer, *params)
+                    bot.messaging.on_message(main, on_click)
+                if cost_value <= 0:
+                    bot.messaging.send_message(peer, "Введена некорректная величина. Попробуйте еще раз")
+                    auth(id, peer, *params)
+                    bot.messaging.on_message(main, on_click)
                 company_name = get_company(id)
                 cost.insert_one({"company": company_name, "title":str(cost_name), "changing": str(cost_value)})
                 company_res = get_company(id)
                 current_leftover = company.find_one({"company": company_res})["leftover"]
                 company.remove({"company" : company_res})
                 company.insert_one({"company": company_res,  "leftover": str(int(current_leftover)-int(params[0].message.textMessage.text))})
-                bot.messaging.send_message(peer, str(cost_name) + str(cost_value))
+                res = company.find_one({"company": company_res})["leftover"]
+                if int(res)<0:
+                    bot.messaging.send_message(peer,"Вы ушли в минус! Пополните баланс!")
                 auth(id, peer, *params)
                 bot.messaging.on_message(main, on_click)
 
@@ -208,14 +234,24 @@ def on_click(*params):
         bot.messaging.on_message(get_cost_name)
     if value == "add_money":
         def adding_money(*params):
-             company.remove({"company" : company_res})
-             company.insert_one({"company": company_res,  "leftover": params[0].message.textMessage.text})
-             auth(id, peer, *params)
-             bot.messaging.on_message(main, on_click)
-        company_res = get_company(id)
-        res = company.find_one({"company": company_res})["leftover"]
-        bot.messaging.send_message(peer,"Ваш текущий баланс равен " + res +" Сколько должно быть денег?")
-        bot.messaging.on_message(adding_money)
+                try:
+                    money = int(params[0].message.textMessage.text)
+                except ValueError:
+                    bot.messaging.send_message(peer, "Введена некорректная величина. Попробуйте еще раз")
+                    auth(id, peer, *params)
+                    bot.messaging.on_message(main, on_click)
+                if money <= 0:
+                    bot.messaging.send_message(peer, "Введена некорректная величина. Попробуйте еще раз")
+                    auth(id, peer, *params)
+                    bot.messaging.on_message(main, on_click)
+                company.remove({"company" : company_res})
+                company.insert_one({"company": company_res,  "leftover": money})
+                auth(id, peer, *params)
+                bot.messaging.on_message(main, on_click)
+                company_res = get_company(id)
+                res = company.find_one({"company": company_res})["leftover"]
+                bot.messaging.send_message(peer,"Ваш текущий баланс равен " + res +" Сколько должно быть денег?")
+                bot.messaging.on_message(adding_money)
     if value == "create_company":
         bot.messaging.send_message(peer, "Введите имя компании")
 
