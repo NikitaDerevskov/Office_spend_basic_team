@@ -234,24 +234,25 @@ def on_click(*params):
         bot.messaging.on_message(get_cost_name)
     if value == "add_money":
         def adding_money(*params):
-                try:
-                    money = int(params[0].message.textMessage.text)
-                except ValueError:
-                    bot.messaging.send_message(peer, "Введена некорректная величина. Попробуйте еще раз")
-                    auth(id, peer, *params)
-                    bot.messaging.on_message(main, on_click)
-                if money <= 0:
-                    bot.messaging.send_message(peer, "Введена некорректная величина. Попробуйте еще раз")
-                    auth(id, peer, *params)
-                    bot.messaging.on_message(main, on_click)
-                company.remove({"company" : company_res})
-                company.insert_one({"company": company_res,  "leftover": money})
+            try:
+                cost_value = int(params[0].message.textMessage.text)
+            except ValueError:
+                bot.messaging.send_message(peer, "Введена некорректная величина. Попробуйте еще раз")
                 auth(id, peer, *params)
                 bot.messaging.on_message(main, on_click)
-                company_res = get_company(id)
-                res = company.find_one({"company": company_res})["leftover"]
-                bot.messaging.send_message(peer,"Ваш текущий баланс равен " + res +" Сколько должно быть денег?")
-                bot.messaging.on_message(adding_money)
+            if cost_value <= 0:
+                bot.messaging.send_message(peer, "Введена некорректная величина. Попробуйте еще раз")
+                auth(id, peer, *params)
+                bot.messaging.on_message(main, on_click)
+
+            company.remove({"company" : company_res})
+            company.insert_one({"company": company_res,  "leftover": cost_value})
+            auth(id, peer, *params)
+            bot.messaging.on_message(main, on_click)
+        company_res = get_company(id)
+        res = company.find_one({"company": company_res})["leftover"]
+        bot.messaging.send_message(peer,"Ваш текущий баланс равен " + res +" Сколько должно быть денег?")
+        bot.messaging.on_message(adding_money)
     if value == "create_company":
         bot.messaging.send_message(peer, "Введите имя компании")
 
