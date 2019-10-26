@@ -12,7 +12,7 @@ client = MongoClient(
 db = client.new_hackaton
 users = db.users
 guides = db.guides
-bot_token = "fc1595f3591f137461a1ad6441062e083fd366a1"
+bot_token = "4a3a998e50c55e13fb4ef9a52a224303602da6af"
 tokens = db.tokens
 cost = db.cost
 # https://github.com/dialogs/chatbot-hackathon - basic things
@@ -116,7 +116,6 @@ def send_manager_buttons(id, peer):
                         "current", "Узнать баланс"
                     ),
                 ),
-
             ]
         )
     ]
@@ -190,26 +189,28 @@ def on_click(*params):
             company_name = params[0].message.textMessage.text
             exits_companies_dict = list(users.find({"company": company_name}))
             exits_companies_list = [x["company"] for x in exits_companies_dict]
+
             def getting_current_leftover(*params):
                 cost.insert_one({"company": company_name,"leftover": params[0].message.textMessage.text})
                 auth(id, peer, *params)
                 bot.messaging.on_message(main, on_click)
+
             if company_name in exits_companies_list:
                 bot.messaging.send_message(
                     peer, "Компания с таким именем уже существует"
                 )
             else:
-                users.insert_one({"type": "Office-manager", "company": company_name, "id": id})
-                bot.messaging.send_message(peer, "Компания успешно создана. Введите количество денег на счету")
+                users.insert_one(
+                    {"type": "Office-manager", "company": company_name, "id": id}
+                )
+                bot.messaging.send_message(
+                    peer, "Компания успешно создана. Введите количество денег на счету"
+                )
                 bot.messaging.on_message(getting_current_leftover)
 
         bot.messaging.on_message(waiting_of_creating_company)
 
-    if value == "add_money":
-        pass
 
-    if value == "current":
-        get_current(id, peer)
 
     if value == "get_admin_token":
         current_time = str(int(time.time() * 1000.0))
