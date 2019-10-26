@@ -211,6 +211,25 @@ def on_click(*params):
         bot.messaging.on_message(waiting_of_creating_company)
 
 
+   if value == "add_costs":
+        bot.messaging.send_message(peer, "Введите название расхода")
+
+        def get_cost_name(*params):
+            bot.messaging.send_message(peer, "Введите величину расхода (положительную)")
+            cost_name = params[0].message.textMessage.text
+
+            def cost_value(*params):
+                cost_value = int(params[0].message.textMessage.text)
+                bot.messaging.send_message(peer, str(cost_name) + str(cost_value))
+                auth(id, peer, *params)
+                bot.messaging.on_message(main, on_click)
+
+            bot.messaging.on_message(cost_value)
+
+        bot.messaging.on_message(get_cost_name)
+
+
+
 
     if value == "get_admin_token":
         current_time = str(int(time.time() * 1000.0))
