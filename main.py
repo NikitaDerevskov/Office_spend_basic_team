@@ -4,11 +4,12 @@ from threading import Timer
 from pymongo import MongoClient
 import grpc
 import time
-
+import datetime
 # Utils
 client = MongoClient(
     "mongodb://team:123ert@ds018839.mlab.com:18839/new_hackaton", retryWrites=False
 )
+now = datetime.datetime.now()
 db = client.new_hackaton
 users = db.users
 guides = db.guides
@@ -194,8 +195,9 @@ def on_click(*params):
         title_list_res = list(cost.find({"company": user}))
         exits_companies_list = [x["title"] for x in title_list_res]
         exits_companies_list2 = [x["changing"] for x in title_list_res]
+        exits_companies_list3 = [x["time"] for x in title_list_res]
         for i in range (len(exits_companies_list)):
-            bot.messaging.send_message(peer,str(i+1)+") Название: " + exits_companies_list[i]+ "; Сумма: "+ exits_companies_list2[i] )
+            bot.messaging.send_message(peer,str(i+1)+") Название: " + exits_companies_list[i]+ "; Сумма: "+ exits_companies_list2[i] + "; Время создания: " + exits_companies_list3[i] )
         auth(id, peer, *params)
         bot.messaging.on_message(main, on_click)
     if value == "current":
@@ -218,7 +220,8 @@ def on_click(*params):
                     auth(id, peer, *params)
                     bot.messaging.on_message(main, on_click)
                 company_name = get_company(id)
-                cost.insert_one({"company": company_name, "title":str(cost_name), "changing": str(cost_value)})
+                current_time2 = now.strftime("%d-%m-%Y %H:%M")
+                cost.insert_one({"company": company_name, "title":str(cost_name), "changing": str(cost_value),"time": str(current_time2) })
                 company_res = get_company(id)
                 current_leftover = company.find_one({"company": company_res})["leftover"]
                 company.remove({"company" : company_res})
