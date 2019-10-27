@@ -262,7 +262,22 @@ def on_click(*params):
             exits_companies_list = [x["company"] for x in exits_companies_dict]
 
             def getting_current_leftover(*params):
-                company.insert_one({"company": company_name,"leftover": params[0].message.textMessage.text})
+                leftover_try = params[0].message.textMessage.text
+                try:
+                    cost_value = int(params[0].message.textMessage.text)
+                except ValueError:
+                    bot.messaging.send_message(
+                        peer, "Введено неверное значение"
+                    )
+                    users.remove({"company" : company_name})
+                    bot.messaging.on_message(main,on_click)
+                if int(leftover_try)<=0:
+                    bot.messaging.send_message(
+                        peer, "Введено неверное значение"
+                    )
+                    users.remove({"company" : company_name})
+                    bot.messaging.on_message(main,on_click)
+                company.insert_one({"company": company_name,"leftover": leftover_try })
                 auth(id, peer, *params)
                 bot.messaging.on_message(main, on_click)
 
@@ -275,9 +290,10 @@ def on_click(*params):
                     {"type": "Office-manager", "company": company_name, "id": id}
                 )
                 bot.messaging.send_message(
-                    peer, "Компания успешно создана. Введите количество денег на счету"
+                    peer, "Введите количество денег на счету"
                 )
-                bot.messaging.on_message(getting_current_leftover)
+
+            bot.messaging.on_message(getting_current_leftover)
 
         bot.messaging.on_message(waiting_of_creating_company)
 
